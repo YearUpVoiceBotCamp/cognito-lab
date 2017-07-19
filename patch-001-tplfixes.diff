@@ -1,0 +1,13 @@
+diff --git a/src/providers/user.ts b/src/providers/user.ts
+index d3e0859..fa67b57 100644
+--- a/src/providers/user.ts
++++ b/src/providers/user.ts
+@@ -33,7 +33,7 @@ export class User {
+       let authDetails = this.cognito.makeAuthDetails(username, password);
+ 
+       user.authenticateUser(authDetails, {
+-        'onSuccess': function(result) {
++        'onSuccess': (result) => {
+           var logins = {};
+           var loginKey = 'cognito-idp.' +
+                           aws_cognito_region +

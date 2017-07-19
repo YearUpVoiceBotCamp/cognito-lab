@@ -1,0 +1,17 @@
+{
+  "name": "helloWorld",
+  "version": "1.0.0",
+  "description": "hello world alexa project",
+  "main": "index.js",
+  "dependencies": {
+    "alexa-sdk": "^1.0.8",
+    "amazon-cognito-js": "^1.1.0",
+    "aws-sdk": "^2.78.0"
+  },
+  "devDependencies": {
+    "alexa-sdk": "^1.0.6"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

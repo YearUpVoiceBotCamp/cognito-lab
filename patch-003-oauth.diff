@@ -1,0 +1,164 @@
+diff --git a/src/app/app.component.ts b/src/app/app.component.ts
+index 1615934..f8f2c03 100644
+--- a/src/app/app.component.ts
++++ b/src/app/app.component.ts
+@@ -8,6 +8,7 @@ import { LoginPage } from '../pages/login/login';
+ 
+ import { User } from '../providers/user';
+ 
++import { OAuthGrant } from '../providers/oauth-grant';
+ 
+ @Component({
+   templateUrl: 'app.html'
+@@ -15,7 +16,7 @@ import { User } from '../providers/user';
+ export class MyApp {
+   rootPage:any = null;
+ 
+-  constructor(platform: Platform, statusBar: StatusBar, splashScreen: SplashScreen, user: User, public config: Config) {
++  constructor(platform: Platform, statusBar: StatusBar, splashScreen: SplashScreen, user: User, public config: Config, oauthGrant : OAuthGrant) {
+     let globalActions = function() {
+       // Okay, so the platform is ready and our plugins are available.
+       // Here you can do any higher level native things you might need.
+@@ -26,8 +27,11 @@ export class MyApp {
+     platform.ready().then(() => {
+       user.isAuthenticated().then(() => {
+         console.log('you are authenticated!');
+-        this.rootPage = TabsPage;
+-        globalActions();
++        // If this is an OAuth request, redirect it.
++        oauthGrant.redirectGrantRequest().catch(() => {
++          this.rootPage = TabsPage;
++          globalActions();
++        });
+       }).catch(() => {
+         console.log('you are not authenticated..'); 
+         this.rootPage = LoginPage;
+diff --git a/src/app/app.module.ts b/src/app/app.module.ts
+index 7866439..0a6ab7d 100644
+--- a/src/app/app.module.ts
++++ b/src/app/app.module.ts
+@@ -21,7 +21,7 @@ import { SplashScreen } from '@ionic-native/splash-screen';
+ import { User } from '../providers/user';
+ import { Cognito } from '../providers/aws.cognito';
+ import { DynamoDB } from '../providers/aws.dynamodb';
+-
++import { OAuthGrant } from '../providers/oauth-grant';
+ 
+ @NgModule({
+   declarations: [
+@@ -60,7 +60,8 @@ import { DynamoDB } from '../providers/aws.dynamodb';
+     Camera,
+     User,
+     Cognito,
+-    DynamoDB
++    DynamoDB,
++    OAuthGrant
+   ]
+ })
+ export class AppModule {}
+diff --git a/src/pages/login/login.ts b/src/pages/login/login.ts
+index 4974bd1..035392c 100644
+--- a/src/pages/login/login.ts
++++ b/src/pages/login/login.ts
+@@ -7,6 +7,7 @@ import { SignupPage } from '../signup/signup';
+ import { ConfirmPage } from '../confirm/confirm';
+ 
+ import { User } from '../../providers/providers';
++import { OAuthGrant } from '../../providers/oauth-grant';
+ 
+ export class LoginDetails {
+   username: string;
+@@ -25,7 +26,8 @@ export class LoginPage {
+ 
+   constructor(public navCtrl: NavController,
+               public user: User,
+-              public loadingCtrl: LoadingController) {
++              public loadingCtrl: LoadingController,
++              public oauthGrant: OAuthGrant) {
+     this.loginDetails = new LoginDetails(); 
+   }
+ 
+@@ -41,8 +43,11 @@ export class LoginPage {
+     console.log('login..');
+     this.user.login(details.username, details.password).then((result) => {
+       console.log('result:', result);
+-      loading.dismiss();
+-      this.navCtrl.setRoot(TabsPage);
++      // Redirect if this was an OAuth Grant request
++      this.oauthGrant.redirectGrantRequest().catch(function() {
++        loading.dismiss();
++        this.navCtrl.setRoot(TabsPage);
++      });
+     }).catch((err) => { 
+       if (err.message === "User is not confirmed.") {
+         loading.dismiss();
+diff --git a/src/providers/oauth-grant.ts b/src/providers/oauth-grant.ts
+new file mode 100644
+index 0000000..3130fbd
+--- /dev/null
++++ b/src/providers/oauth-grant.ts
+@@ -0,0 +1,63 @@
++import { Injectable } from '@angular/core';
++import { Platform } from 'ionic-angular';
++
++import { User } from './user';
++
++declare var AWS: any;
++
++/**
++ * This is a simple naive implementation of OAuth implicit grants which
++ * provides a Base64 encoded version of the Cognito Identity ID back as
++ * the perpetual access token. For production software, the OAuth
++ * authorization code process is recommended.
++ */
++
++@Injectable()
++export class OAuthGrant {
++
++  static ERR_NOT_APPLICABLE = 'Current request is not a valid OAuth Grant Request';
++  static ERR_NOT_AVAILABLE = 'Current OAuth Grant Request cannot be satisfied.';
++
++  constructor(public plt: Platform, public user: User) {
++  }
++
++  oauthRequestReturnUrl() {
++    let responseType = this.plt.getQueryParam('response_type');
++    let redirectUri = this.plt.getQueryParam('redirect_uri');
++    let state = this.plt.getQueryParam('state');
++
++    if (redirectUri != undefined && responseType == 'token') {
++      var redirectTarget = '';
++      try {
++        redirectTarget = decodeURIComponent(redirectUri);
++      } catch (err) {
++        return false;
++      }
++      redirectTarget += (redirectTarget.indexOf('#') < 0) ? '#' : '';
++      redirectTarget += 'state=' + (state ? state : '')
++        + '&token_type=Bearer';
++      return redirectTarget;
++    }
++
++    return false;
++  }
++
++  redirectGrantRequest() {
++    return new Promise((resolve, reject) => {
++      let baseUrl = this.oauthRequestReturnUrl();
++      if (!baseUrl) {
++        reject({'message': OAuthGrant.ERR_NOT_APPLICABLE});
++        return;
++      }
++      Promise.all([
++        this.user.isAuthenticated()
++      ]).then(function (values) {
++        let targetUrl = baseUrl + '&access_token=' + AWS.util.base64.encode(AWS.config.credentials.data.IdentityId);
++        console.log('redirecting to ', targetUrl);
++        location.replace(targetUrl);
++        resolve();
++      });
++    });
++  }
++
++}
+\ No newline at end of file

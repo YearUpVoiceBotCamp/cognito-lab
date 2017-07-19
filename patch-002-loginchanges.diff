@@ -1,0 +1,66 @@
+diff --git a/src/pages/login/login.html b/src/pages/login/login.html
+index 35c72dd..14d072c 100644
+--- a/src/pages/login/login.html
++++ b/src/pages/login/login.html
+@@ -2,6 +2,7 @@
+   <div text-center class="logo">
+     <img src="assets/ionic-aws-logo.png" />
+   </div>
++  <p *ngIf="error" class="error"><ion-icon name="alert"></ion-icon>{{error.message}}</p>
+   <form (submit)="login()">
+     <ion-list>
+ 
+diff --git a/src/pages/login/login.scss b/src/pages/login/login.scss
+index a346e7d..ecc496f 100644
+--- a/src/pages/login/login.scss
++++ b/src/pages/login/login.scss
+@@ -7,4 +7,13 @@ page-login {
+       max-width: 150px;
+     }
+   }
++
++  .error {
++    .icon {
++      padding-right: 5px;
++    }
++
++    color: red;
++    text-align: center;
++  }
+ }
+diff --git a/src/pages/login/login.ts b/src/pages/login/login.ts
+index ac23f25..4974bd1 100644
+--- a/src/pages/login/login.ts
++++ b/src/pages/login/login.ts
+@@ -21,6 +21,8 @@ export class LoginPage {
+   
+   public loginDetails: LoginDetails;
+ 
++  error: any;
++
+   constructor(public navCtrl: NavController,
+               public user: User,
+               public loadingCtrl: LoadingController) {
+@@ -33,6 +35,8 @@ export class LoginPage {
+     });
+     loading.present();
+ 
++    this.error = null;
++
+     let details = this.loginDetails;
+     console.log('login..');
+     this.user.login(details.username, details.password).then((result) => {
+@@ -43,9 +47,11 @@ export class LoginPage {
+       if (err.message === "User is not confirmed.") {
+         loading.dismiss();
+         this.navCtrl.push(ConfirmPage, { 'username': details.username });
++      } else {
++        console.log('errrror', err);
++        this.error = err;
++        loading.dismiss();
+       }
+-      console.log('errrror', err);
+-      loading.dismiss();
+     });
+   }
+ 
