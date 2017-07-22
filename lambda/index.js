@@ -27,9 +27,6 @@ exports.handler = function(event, context, callback){
       alexa.emit(':tell', 'I\'m sorry, I\'m not able to remember what we talked about earlier.');
     });
   });
-
-  alexa.registerHandlers(handlers);
-  alexa.execute();
 };
 
 // Some helper functions to post/pull data from a cognito dataset record
@@ -41,6 +38,7 @@ function getLastIntent() {
     });
   });
 }
+
 function trackIntent(intentName, callback) {
   historyDataset.put('LastIntent', intentName, function() {
     historyDataset.synchronize({

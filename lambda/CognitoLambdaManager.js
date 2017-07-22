@@ -42,18 +42,24 @@ CognitoLambdaManager = (function() {
                 resolve(_this.datasets[datasetName]);
                 return;
             }
-            historyDataset = new AWS.CognitoSyncManager.Dataset(
-                datasetName, 
-                { identityId: _this.remoteSyncData.provider.identityId }, 
-                _this.localSyncData, _this.remoteSyncData);
-            historyDataset.synchronize({
-                'onFailure': function(err) {
+            _this.localSyncData.createDataset(_this.remoteSyncData.provider.identityId, datasetName, function (err, data) {
+                if (err) {
                     reject(err);
-                },
-                'onSuccess': function(dataset, updates) {
-                    _this.datasets[datasetName] = historyDataset;
-                    resolve(historyDataset);
+                    return;
                 }
+                historyDataset = new AWS.CognitoSyncManager.Dataset(
+                    data, 
+                    { identityId: _this.remoteSyncData.provider.identityId }, 
+                    _this.localSyncData, _this.remoteSyncData);
+                historyDataset.synchronize({
+                    'onFailure': function(err) {
+                        reject(err);
+                    },
+                    'onSuccess': function(dataset, updates) {
+                        _this.datasets[datasetName] = historyDataset;
+                        resolve(historyDataset);
+                    }
+                });
             });
         });
     };
