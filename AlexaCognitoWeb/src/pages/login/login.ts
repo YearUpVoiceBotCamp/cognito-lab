@@ -44,7 +44,7 @@ export class LoginPage {
     this.user.login(details.username, details.password).then((result) => {
       console.log('result:', result);
       // Redirect if this was an OAuth Grant request
-      this.oauthGrant.redirectGrantRequest().catch(function() {
+      this.oauthGrant.redirectGrantRequest().catch(() => {
         loading.dismiss();
         this.navCtrl.setRoot(TabsPage);
       });
