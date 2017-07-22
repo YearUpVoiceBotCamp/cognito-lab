@@ -52,7 +52,7 @@ export class OAuthGrant {
       Promise.all([
         this.user.isAuthenticated()
       ]).then(function (values) {
-        let targetUrl = baseUrl + '&access_token=' + AWS.util.base64.encode(AWS.config.credentials.data.IdentityId);
+        let targetUrl = baseUrl + '&access_token=' + AWS.util.base64.encode(AWS.config.credentials.params.IdentityId);
         console.log('redirecting to ', targetUrl);
         location.replace(targetUrl);
         resolve();

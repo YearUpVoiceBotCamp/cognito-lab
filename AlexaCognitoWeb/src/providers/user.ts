@@ -31,7 +31,7 @@ export class User {
     return new Promise((resolve, reject) => {
       let user = this.cognito.makeUser(username);
       let authDetails = this.cognito.makeAuthDetails(username, password);
-
+      AWS.config.credentials.clearCachedId();
       user.authenticateUser(authDetails, {
         'onSuccess': (result) => {
           var logins = {};
@@ -40,16 +40,16 @@ export class User {
                           '.amazonaws.com/' +
                           aws_user_pools_id;
           logins[loginKey] = result.getIdToken().getJwtToken();
-
           AWS.config.credentials = new AWS.CognitoIdentityCredentials({
            'IdentityPoolId': aws_cognito_identity_pool_id,
            'Logins': logins
           });
-
-          this.isAuthenticated().then(() => {
-            resolve();
-          }).catch((err) => {
-            console.log('auth session failed');
+          AWS.config.credentials.refresh(() => {
+            this.isAuthenticated().then(() => {
+              resolve();
+            }).catch((err) => {
+              console.log('auth session failed');
+            });
           });
         },
 
@@ -64,6 +64,7 @@ export class User {
   logout() {
     this.user = null;
     this.cognito.getUserPool().getCurrentUser().signOut();
+    AWS.config.credentials.clearCachedId();
   }
 
   register(username, password, attr) {
@@ -128,12 +129,10 @@ export class User {
               '.amazonaws.com/' +
               aws_user_pools_id;
             logins[loginKey] = session.getIdToken().getJwtToken();
-
             AWS.config.credentials = new AWS.CognitoIdentityCredentials({
               'IdentityPoolId': aws_cognito_identity_pool_id,
               'Logins': logins
             });
-
             this.user = user;
             resolve()
           }
