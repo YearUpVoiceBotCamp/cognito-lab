@@ -32,6 +32,28 @@ exports.handler = function(event, context, callback){
   alexa.execute();
 };
 
+// Some helper functions to post/pull data from a cognito dataset record
+function getLastIntent() {
+  return new Promise((resolve, reject) => {
+    historyDataset.get('LastIntent', function(err, data) {
+      if (err) { reject(err); return; }
+      resolve(data);
+    });
+  });
+}
+function trackIntent(intentName, callback) {
+  historyDataset.put('LastIntent', intentName, function() {
+    historyDataset.synchronize({
+      'onSuccess': function() {
+        callback(null, intentName);
+      },
+      'onFailure': function(err) {
+        callback(err);
+      }
+    })
+  });
+}
+
 var handlers = {
 
   'LaunchRequest': function () {
